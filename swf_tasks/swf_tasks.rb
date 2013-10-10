@@ -4,29 +4,25 @@ class SwfTasks < Scout::Plugin
   needs 'aws-sdk'
   needs 'yaml'
 
-  OPTIONS = <<-EOS
-  workflow_list_mapping:
-    name: Workflow List to Application Mapping
-    notes: JSON formatted mapping
-    default: {"console": "console", "webcrm-tasklist": "crm", "cms": "cms"}
-  EOS
-
   def workflow_list_mapping
-    @workflow_list_mapping ||= option(:workflow_list_mapping) || {}
+    {
+      "webcrm-tasklist" => "crm",
+      "cms" => "cms",
+      "console" => "console"
+    }
   end
 
   def app_name_for_task_list(real_task_list)
-    workflow_list_mapping[real_task_list] ||
-        case real_task_list
-        when /cms/
-          "cms"
-        when /crm/
-          "crm"
-        when /console/
-          "console"
-        else
-          "unknown"
-        end
+    case real_task_list
+    when /cms/
+      "cms"
+    when /crm/
+      "crm"
+    when /console/
+      "console"
+    else
+      "unknown"
+    end
   end
 
   def metric_for_app(app)
