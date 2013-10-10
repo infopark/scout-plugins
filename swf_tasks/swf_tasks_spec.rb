@@ -27,23 +27,26 @@ describe SwfTasks do
   let(:aws_domain) {mock(AWS::SimpleWorkflow::Domain, workflow_executions: workflow_executions)}
   let(:workflow_executions) {mock(AWS::SimpleWorkflow::WorkflowExecutionCollection)}
 
+  let(:event_types) {%w[WorkflowExecutionStarted ActivityTaskScheduled]}
+
   let(:executions) {[
-    build_execution("webcrm-tasklist", "1", %w[WorkflowExecutionStarted ActivityTaskScheduled]),
+    build_execution("webcrm-tasklist", "1", event_types),
     build_execution("webcrm-tasklist", "2", %w[WorkflowExecutionStarted]),
-    build_execution("webcrm-tasklist", "3", %w[WorkflowExecutionStarted ActivityTaskScheduled]),
-    build_execution("changed-crm", "4", %w[WorkflowExecutionStarted ActivityTaskScheduled]),
-    build_execution("cms", "5", %w[WorkflowExecutionStarted ActivityTaskScheduled]),
+    build_execution("webcrm-tasklist", "3", event_types),
+    build_execution("changed-crm"    , "4", event_types),
+    build_execution("cms"            , "5", event_types),
     # nothing for console
   ]}
   let(:last_run) {nil}
   let(:memory) {Hash.new}
-  let(:options) {
+  let(:options_from_plugin) { # unused
     options_as_string = Scout::Plugin.extract_options_yaml_from_code(plugin_source_code)
     parsed_options = Scout::PluginOptions.from_yaml(options_as_string)
     parsed_options.select {|opt| opt.has_default?}.inject({}) do |memo, opt|
       memo[opt.name.to_sym] = opt.default; memo
     end
   }
+  let(:options) {{}}
   let(:plugin) {SwfTasks.new(last_run, memory, options)}
   let(:reports) {plugin.run[:reports]}
   let(:report) {reports.first}
@@ -93,5 +96,19 @@ describe SwfTasks do
     report.should_not have_key("changed-crm_waiting_tasks")
     report.should_not have_key("unknown_waiting_tasks")
     report["crm_waiting_tasks"].should eq(2 + 1)
+  end
+
+  context "when there are task lists which cannot be auto-guessed to an application" do
+    let(:executions) {[
+        build_execution("hoppla", "1", event_types),
+        build_execution("grummel", "2", event_types),
+        build_execution("successful_console_guess", "3", event_types),
+        build_execution("cms", "5", event_types),
+    ]}
+
+    it 'collects all unsupported task lists as "unknown" to save report keys' do
+      (report.keys - %w[console_waiting_tasks crm_waiting_tasks cms_waiting_tasks]).
+          should eq(["unknown_waiting_tasks"])
+    end
   end
 end
