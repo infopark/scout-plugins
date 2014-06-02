@@ -43,7 +43,12 @@ class Elbenwald < Scout::Plugin
 
     AWS::ELB.new.load_balancers[@elb_name].instances.health.each do |health|
       instance, state = health[:instance], health[:state]
-      zone = instance.availability_zone
+      zone =
+        begin
+          instance.availability_zone
+        rescue AWS::ELB::Errors::AccessDenied, AWS::EC2::Errors::UnauthorizedOperation
+          nil
+        end
       healthy = state == 'InService' or log_unhealthy(zone, instance.id, health[:description])
       healthy_count[zone] += healthy ? 1 : 0
     end
@@ -51,7 +56,11 @@ class Elbenwald < Scout::Plugin
     total_healthy_count = healthy_count.values.reduce(:+)
     zone_count = healthy_count.size
     healthy_zone_count = healthy_count.select {|k, v| v > 0}.size
-    healthy_count.merge({
+
+    statistic = healthy_count.dup
+    # See AccessDenied
+    statistic.delete(nil)
+    statistic.merge({
       :total => total_healthy_count,
       :zones => zone_count,
       :healthy_zones => healthy_zone_count,
