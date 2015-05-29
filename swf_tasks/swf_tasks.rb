@@ -1,5 +1,7 @@
 require 'scout'
 
+needs 'aws-sdk-v1'
+
 UNIT_PATTERN_TO_APP = {
   /scrivitocom/ => "dashboard",
   /crm/ => "crm",
