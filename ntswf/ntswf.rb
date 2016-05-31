@@ -9,10 +9,10 @@ class Ntswf < Scout::Plugin
   UNIT_PATTERN_TO_APP = {
     /scrivitocom/ => "dashboard",
     /crm/ => "crm",
-    /console/ => "console",
     /scriv.*cms/ => "backend",
-    /demo/ => "demo",
-    /cms/ => "cms",
+    /demo/ => "demo",         # old
+    /scrivito_app/ => "demo", # new
+    /cms/ => "cms",           # ICE?
   }
 
   OPTIONS = <<-EOO
